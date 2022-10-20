@@ -30,7 +30,7 @@ export function getCourseById(req: Request, res: Response) {
 
   const courses: any = Object.values(COURSES);
 
-  const course = courses.find((c) => c.id === courseId);
+  const course = courses.find((c) => c.id.toString() === courseId);
 
   res.status(200).json(course);
 }
