@@ -24,7 +24,8 @@ export class HomeComponent implements OnInit {
 
     const courses$ = http$.pipe(
       pluck('payload'),
-      share()
+      share(),
+      catchError(() => of([]))
     ) as Observable<Course[]>;
 
     this.beginnerCourses$ = courses$.pipe(
