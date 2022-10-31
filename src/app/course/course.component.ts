@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, Input, OnInit, ViewChild} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Course} from '../model/course';
 import {
@@ -11,11 +11,12 @@ import {
   concatMap,
   switchMap,
   withLatestFrom,
-  concatAll, shareReplay, pluck
+  concatAll, shareReplay, pluck, exhaustMap, mergeMap
 } from 'rxjs/operators';
 import {merge, fromEvent, Observable, concat} from 'rxjs';
 import {Lesson} from '../model/lesson';
 import {createHttpObservable} from '../common/util';
+import {FromEventTarget} from 'rxjs/internal/observable/fromEvent';
 
 
 @Component({
@@ -24,6 +25,7 @@ import {createHttpObservable} from '../common/util';
   styleUrls: ['./course.component.css']
 })
 export class CourseComponent implements OnInit, AfterViewInit {
+  courseId: string;
   course$: Observable<Course>;
   lessons$: Observable<Lesson[]>;
 
@@ -35,20 +37,31 @@ export class CourseComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    this.courseId = this.route.snapshot.params['id'];
 
-    const courseId = this.route.snapshot.params['id'];
+    this.course$ = createHttpObservable(`/api/courses/${this.courseId}`);
+  }
 
-    this.course$ = createHttpObservable(`/api/courses/${courseId}`);
-    this.lessons$ = createHttpObservable(`api/lessons?courseId=${courseId}&pageSize=100`)
+  ngAfterViewInit() {
+    const searchLessons$ = fromEvent(this.input.nativeElement, 'keyup')
+      .pipe(
+        map((event: KeyboardEvent) => (event.target as HTMLInputElement).value),
+        debounceTime(500),
+        distinctUntilChanged(),
+        switchMap((searchStr) => {
+          return this.loadLessons(searchStr);
+        })
+      );
+
+    const initialLessons$ = this.loadLessons();
+
+    this.lessons$ = concat(initialLessons$, searchLessons$);
+  }
+
+  loadLessons(search = ''): Observable<Lesson[]> {
+    return createHttpObservable(`api/lessons?courseId=${this.courseId}&pageSize=100&filter=${search}`)
       .pipe(
         pluck('payload')
       );
   }
-
-  ngAfterViewInit() {
-
-
-  }
-
-
 }
