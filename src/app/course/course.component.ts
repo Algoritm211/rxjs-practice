@@ -1,22 +1,11 @@
-import {AfterViewInit, Component, ElementRef, Input, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Course} from '../model/course';
-import {
-  debounceTime,
-  distinctUntilChanged,
-  startWith,
-  tap,
-  delay,
-  map,
-  concatMap,
-  switchMap,
-  withLatestFrom,
-  concatAll, shareReplay, pluck, exhaustMap, mergeMap
-} from 'rxjs/operators';
-import {merge, fromEvent, Observable, concat} from 'rxjs';
+import {debounceTime, distinctUntilChanged, map, pluck, startWith, switchMap} from 'rxjs/operators';
+import {fromEvent, Observable} from 'rxjs';
 import {Lesson} from '../model/lesson';
 import {createHttpObservable} from '../common/util';
-import {FromEventTarget} from 'rxjs/internal/observable/fromEvent';
+import {debug, LoggingLevel, setRxJSLoggingLevel} from '../common/operators/debug';
 
 
 @Component({
@@ -39,7 +28,10 @@ export class CourseComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     this.courseId = this.route.snapshot.params['id'];
 
-    this.course$ = createHttpObservable(`/api/courses/${this.courseId}`);
+    this.course$ = createHttpObservable<Course>(`/api/courses/${this.courseId}`).pipe(
+      debug(LoggingLevel.INFO, 'course value'),
+    );
+    setRxJSLoggingLevel(LoggingLevel.TRACE);
   }
 
   ngAfterViewInit() {
@@ -47,18 +39,20 @@ export class CourseComponent implements OnInit, AfterViewInit {
       .pipe(
         map((event: KeyboardEvent) => (event.target as HTMLInputElement).value),
         startWith(''),
+        debug(LoggingLevel.TRACE, 'search value'),
         debounceTime(500),
         distinctUntilChanged(),
         switchMap((searchStr) => {
           return this.loadLessons(searchStr);
-        })
+        }),
+        debug(LoggingLevel.INFO, 'lessons value'),
       );
   }
 
   loadLessons(search = ''): Observable<Lesson[]> {
     return createHttpObservable(`api/lessons?courseId=${this.courseId}&pageSize=100&filter=${search}`)
       .pipe(
-        pluck('payload')
+        pluck('payload'),
       );
   }
 }
