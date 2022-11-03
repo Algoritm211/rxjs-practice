@@ -5,7 +5,9 @@ import {COURSES} from './db-data';
 export function getAllCourses(req: Request, res: Response) {
 
 
-  const error = (Math.random() >= 0.5);
+  // const error = (Math.random() >= 0.5);
+
+  const error = false;
 
   if (error) {
     console.log('ERROR loading courses!');

@@ -5,6 +5,7 @@ import {FormBuilder, Validators, FormGroup} from '@angular/forms';
 import * as moment from 'moment';
 import {from, fromEvent} from 'rxjs';
 import {concatMap, distinctUntilChanged, exhaustMap, filter, mergeMap, switchMap} from 'rxjs/operators';
+import {StoreService} from '../common/store.service';
 
 @Component({
   selector: 'app-course-dialog',
@@ -21,6 +22,7 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('searchInput', {static: true}) searchInput: ElementRef;
 
   constructor(
+    private store: StoreService,
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<CourseDialogComponent>,
     @Inject(MAT_DIALOG_DATA) course: Course) {
@@ -57,12 +59,16 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
 
 
   ngAfterViewInit() {
-    fromEvent(this.saveButton.nativeElement, 'click')
-      .pipe(
-        exhaustMap(() => this.saveModalData(this.form.value))
-      ).subscribe();
+
   }
 
+  save() {
+    this.store.saveCourse(this.course.id, this.form.value)
+      .subscribe(
+        () => this.close(),
+        (err) => console.log('Error while saving course', err)
+      )
+  }
 
   close() {
     this.dialogRef.close();
